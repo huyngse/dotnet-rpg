@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
+using dotnet_rpg.Data;
 using dotnet_rpg.Dtos.Character;
 using dotnet_rpg.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace dotnet_rpg.Services.CharacterService
 {
@@ -16,10 +18,12 @@ namespace dotnet_rpg.Services.CharacterService
             new (){ Id = 1, Name = "Sam"},
         };
         private readonly IMapper _mapper;
+        private readonly DataContext _context;
 
-        public CharacterService(IMapper mapper)
+        public CharacterService(IMapper mapper, DataContext context)
         {
             this._mapper = mapper;
+            this._context = context;
         }
         public async Task<ServiceResponse<List<GetCharacterDto>>> AddCharacter(AddCharacterDto character)
         {
@@ -54,20 +58,19 @@ namespace dotnet_rpg.Services.CharacterService
 
         public async Task<ServiceResponse<List<GetCharacterDto>>> GetAllCharacters()
         {
-            var serviceResponse = new ServiceResponse<List<GetCharacterDto>>
-            {
-                Data = characters.Select(c => _mapper.Map<GetCharacterDto>(c)).ToList()
-            };
+            var serviceResponse = new ServiceResponse<List<GetCharacterDto>>();
+            var dbCharacter = await _context.Characters.ToListAsync();
+            serviceResponse.Data = dbCharacter.Select(c => _mapper.Map<GetCharacterDto>(c)).ToList();
             return serviceResponse;
         }
 
         public async Task<ServiceResponse<GetCharacterDto>> GetCharacterById(int id)
         {
             var serviceResponse = new ServiceResponse<GetCharacterDto>();
-            var character = characters.FirstOrDefault(c => c.Id == id);
-            if (character is not null)
+            var dbCharacter = await _context.Characters.FirstOrDefaultAsync(c => c.Id == id);
+            if (dbCharacter is not null)
             {
-                serviceResponse.Data = _mapper.Map<GetCharacterDto>(character);
+                serviceResponse.Data = _mapper.Map<GetCharacterDto>(dbCharacter);
             }
             else
             {
